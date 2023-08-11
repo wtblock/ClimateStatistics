@@ -416,7 +416,7 @@ int _tmain( int argc, TCHAR* argv[], TCHAR* envp[] )
 		fErr.WriteString( _T( ".\n" ) );
 		fErr.WriteString
 		(
-			_T( "MonthlyStatistics, Copyright (c) 2023, " )
+			_T( "ClimateStatistics, Copyright (c) 2023, " )
 			_T( "by W. T. Block.\n" )
 		);
 
@@ -430,7 +430,7 @@ int _tmain( int argc, TCHAR* argv[], TCHAR* envp[] )
 			_T( "  where each column is a maximum temperature reading \n" )
 			_T( "  from each station in the state. The output from \n" )
 			_T( "  this program are statistics for the whole country \n" )
-			_T( "  organized on a monthly basis in a single CSV file.\n" )
+			_T( "  organized on a yearly basis in a single CSV file.\n" )
 			_T( ".\n" )
 		);
 
@@ -439,7 +439,7 @@ int _tmain( int argc, TCHAR* argv[], TCHAR* envp[] )
 			_T( ".\n" )
 			_T( "Usage:\n" )
 			_T( ".\n" )
-			_T( ".  MonthlyStatistics pathname [station_file_name]\n" )
+			_T( ".  ClimateStatistics pathname [station_file_name]\n" )
 			_T( ".\n" )
 			_T( "Where:\n" )
 			_T( ".\n" )
