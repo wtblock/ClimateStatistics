@@ -33,15 +33,17 @@ bool ParseState()
 } // ParseState
 
 /////////////////////////////////////////////////////////////////////////////
-// write the statistics to the output file
+// write the statistics to the output file in a Comma Separated Value format
 void WriteOutput( CStdioFile& fErr )
 {
 	// write the data into a file named after the two character
 	// state abbreviation with a CSV extension
-	CString csFolder = CHelper::GetDirectory( m_csPath );
-	csFolder.TrimRight( _T( "\\" ));
+	if ( m_csRoot.Right( 1 ) != _T( "\\" ) )
+	{
+		m_csRoot += _T( "\\" );
+	}
 	CString csData;
-	csData.Format( _T( "%s\\ClimateStatistics.CSV" ), csFolder );
+	csData.Format( _T( "%sClimateStatistics.CSV" ), m_csRoot );
 
 	fErr.WriteString( _T( "Writing output: \n\t" + csData + _T( "\n" )));
 
@@ -97,26 +99,28 @@ void ProcessState( CStdioFile& fErr )
 		bool bFirst = true;
 		CString csHeader;
 		CString csLine;
+		CString csHead;
+		int nHead = 0;
 		const CString csDelim( _T( "," ) );
 		while ( file.ReadString( csLine ) )
 		{
 			// the first token of the line is the date: yyyymmdd
 			int nStartLine = 0;
-			int nStartHead = 0;
-			CString csHead;
+			int nStartHead = nHead;
 			const CString csDate = csLine.Tokenize( csDelim, nStartLine );
 
-			// record the CSV header line
+			// record the CSV header line starting position
 			if ( csDate == _T( "Date" ) )
 			{
 				csHeader = csLine;
-				csHead = csHeader.Tokenize( csDelim, nStartHead );
+				csHead = csHeader.Tokenize( csDelim, nHead );
 				continue;
 			}
 
 			// year of this statistic
 			CString csYear = csDate.Left( 4 );
 
+			// pointer to the statistics for a year
 			shared_ptr<CYearlyStatistics> pStats;
 
 			// find or create a statistic date
@@ -144,7 +148,9 @@ void ProcessState( CStdioFile& fErr )
 					break;
 				}
 				const float fTemp = (float)_tstof( csToken );
-				if ( fTemp > fMax )
+				const bool bValid = pStats->Valid[ fTemp ][ m_csStation ];
+
+				if ( bValid && fTemp > fMax )
 				{
 					fMax = fTemp;
 					csStationMax = m_csStation;
@@ -264,9 +270,9 @@ bool ReadStations()
 	return value;
 } // ReadStations
 
-  /////////////////////////////////////////////////////////////////////////////
-  // read the state data and make a cross reference between the two digit code
-  // and the two letter postal code that is used to identify states
+/////////////////////////////////////////////////////////////////////////////
+// read the state data and make a cross reference between the two digit code
+// and the two letter postal code that is used to identify states
 bool ReadStates()
 {
 	bool value = false;
@@ -360,9 +366,9 @@ bool ReadStates()
 	return value;
 } // ReadStates
 
-  /////////////////////////////////////////////////////////////////////////////
-  // a simple command line application to illustrate a bug in command line
-  // processing
+/////////////////////////////////////////////////////////////////////////////
+// a simple command line application to illustrate a bug in command line
+// processing
 int _tmain( int argc, TCHAR* argv[], TCHAR* envp[] )
 {
 	HMODULE hModule = ::GetModuleHandle( NULL );
@@ -464,20 +470,24 @@ int _tmain( int argc, TCHAR* argv[], TCHAR* envp[] )
 	fErr.WriteString( csMessage );
 	fErr.WriteString( _T( ".\n" ) );
 
-	// retrieve the pathname from the command line
-	m_csPath = arrArgs[ 1 ];
+	// retrieve the pathname from the command line and save it
+	m_csRoot = arrArgs[ 1 ];
 
-	// trim off any wild card data
-	const CString csFolder = CHelper::GetFolder( m_csPath );
+	// this variable changes with the recursion through folders
+	m_csPath = arrArgs[ 1 ];
 
 	// test for current folder character (a period)
 	bool bExists = m_csPath == _T( "." );
 
 	// if it is a period, add a wild card of *.* to retrieve
 	// all folders and files
-	if ( !bExists )
+	if ( bExists )
 	{
-		if ( ::PathFileExists( csFolder ) )
+		m_csRoot = CHelper::GetCurrentDirectory();
+	}
+	else
+	{
+		if ( ::PathFileExists( m_csPath ) )
 		{
 			bExists = true;
 		}
@@ -496,6 +506,8 @@ int _tmain( int argc, TCHAR* argv[], TCHAR* envp[] )
 	{
 		csMessage.Format( _T( "Given pathname:\n\t%s\n" ), m_csPath );
 		fErr.WriteString( _T( ".\n" ) );
+		fErr.WriteString( csMessage );
+		csMessage.Format( _T( "Root folder:\n\t%s\n" ), m_csRoot );
 		fErr.WriteString( csMessage );
 	}
 

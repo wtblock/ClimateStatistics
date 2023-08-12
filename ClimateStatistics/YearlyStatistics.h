@@ -3,6 +3,8 @@
 /////////////////////////////////////////////////////////////////////////////
 #pragma once
 #include "atlcomtime.h"
+#include "KeyedCollection.h"
+#include "CHelper.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // a class to store yearly statistics
@@ -13,6 +15,10 @@ public:
 
 // protected data
 protected:
+	// collection of stations read for the year
+	// and the count of valid readings for each
+	// station
+	CKeyedCollection<CString,int> m_Stations;
 	// date of the maximum temperature measurement
 	CString m_csDate;
 	// state of the maximum temperature measurement
@@ -21,6 +27,12 @@ protected:
 	CString m_csStation;
 	// maximum temperature for the year
 	float m_fMaximumTemperature;
+	// average high temperature
+	float m_fAverageTemperature;
+	// number of valid readings for the year
+	int m_nReadings;
+	// number of valid stations for the year
+	int m_nStations;
 	// number of days over 90
 	int m_nOver90;
 	// number of days over 95
@@ -42,13 +54,56 @@ protected:
 
 // public properties
 public:
+	// test the validity of the value for the given station
+	// and if valid update the count for the station and
+	// keep track of the stations that supplied valid data
+	inline bool GetValid( float fValue, CString csStation )
+	{
+		bool value = true;
+		const bool bMissing = 
+			CHelper::NearlyEqual( fValue, -9999.0f );
+		const bool bTooHigh = fValue > 140.0f;
+		if ( bMissing || bTooHigh )
+		{
+			value = false;
+		}
+		else
+		{
+			shared_ptr<int> pCount;
+			if ( m_Stations.Exists[ csStation ] )
+			{
+				pCount = m_Stations.find( csStation );
+			}
+			else
+			{
+				pCount = shared_ptr<int>( new int( 0 ) );
+				m_Stations.add( csStation, pCount );
+			}
+
+			// update number of valid readings for this station
+			(*pCount)++;
+
+			// calculate the new average temperature
+			const float fTotal = 
+				m_fAverageTemperature * m_nReadings + fValue;
+			m_nReadings++;
+			m_fAverageTemperature = fTotal / m_nReadings;
+		}
+
+		return value;
+	}
+	// test the validity of the value for the given station
+	// and if valid update the count for the station and
+	// keep track of the stations that supplied valid data
+	__declspec( property( get = GetValid ) )
+		bool Valid[][];
+
 	// CSV Header
 	inline CString GetHeader()
 	{
 		CString value = 
-			_T( "YEAR,DATE,STATE,STATION,DEGF," )
-			_T( ">90,>95,>100,>105,>110,>115," )
-			_T( ">120,>125,>130\n" );
+			_T( "YEAR,DATE,STATE,STATION,MAXDEGF,AVGDEGF,READINGS,STATIONS," )
+			_T( ">90,>95,>100,>105,>110,>115,>120,>125,>130\n" );
 
 		return value;
 	}
@@ -62,10 +117,11 @@ public:
 		CString value;
 		value.Format
 		(
-			_T( "%s,%s,%s,%s,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d\n" ),
-			csYear, Date, State, Station, MaximumTemperature,
-			Over90, Over95, Over100, Over105, Over110,
-			Over115, Over120, Over125, Over130
+			_T( "%s,%s,%s,%s,%f,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n" ),
+			csYear, Date, State, Station, 
+			MaximumTemperature, AverageTemperature,
+			Readings, Stations, Over90, Over95, Over100, Over105, 
+			Over110, Over115, Over120, Over125, Over130
 		);
 
 		return value;
@@ -137,6 +193,27 @@ public:
 	)
 	float MaximumTemperature;
 
+	// maximum temperature for the year
+	inline float GetAverageTemperature()
+	{
+		return m_fAverageTemperature;
+	}
+	// maximum temperature for the year
+	inline void SetAverageTemperature( float value )
+	{
+		m_fAverageTemperature = value;
+	}
+	// maximum temperature for the year
+	__declspec
+	( 
+		property
+		( 
+			get = GetAverageTemperature, 
+			put = SetAverageTemperature 
+		) 
+	)
+	float AverageTemperature;
+
 	// number of days over 90
 	inline int GetOver90()
 	{
@@ -150,6 +227,36 @@ public:
 	// number of days over 90
 	__declspec( property( get = GetOver90, put = SetOver90 ) )
 		int Over90;
+
+	// number of valid readings for the year
+	inline int GetReadings()
+	{
+		return m_nReadings;
+	}
+	// number of valid readings for the year
+	inline void SetReadings( int value )
+	{
+		m_nReadings = value;
+	}
+	// number of valid readings for the year
+	__declspec( property( get = GetReadings, put = SetReadings ) )
+		int Readings;
+
+	// number of valid stations for the year
+	inline int GetStations()
+	{
+		int value = (int)m_Stations.Count;
+		Stations = value;
+		return value;
+	}
+	// number of valid stations for the year
+	inline void SetStations( int value )
+	{
+		m_nStations = value;
+	}
+	// number of valid stations for the year
+	__declspec( property( get = GetStations, put = SetStations ) )
+		int Stations;
 
 	// number of days over 95
 	inline int GetOver95()
@@ -319,7 +426,10 @@ public:
 public:
 	CYearlyStatistics()
 	{
+		Readings = 0;
+		Stations = 0;
 		MaximumTemperature = -9999.0f;
+		AverageTemperature = -9999.0f;
 		Over90 = 0;
 		Over95 = 0;
 		Over100 = 0;

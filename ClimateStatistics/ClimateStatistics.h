@@ -23,6 +23,9 @@ CKeyedCollection<CString, CString> m_StateCodes;
 // path to the stations file
 CString m_csStationPath;
 
+// root path from parameter 1
+CString m_csRoot;
+
 // path to the data file
 CString m_csPath;
 
